@@ -20,6 +20,7 @@ def db():
 def get_all() -> List[Dict]:
     length = request.args.get('length')
     offset = request.args.get('offset')
+    limit = ''
 
     if length is not None and offset is None:
         limit = 'LIMIT {length}'.format(length=length)
@@ -27,8 +28,7 @@ def get_all() -> List[Dict]:
         limit = "LIMIT {offset},18446744073709551615".format(offset=offset)
     if offset is not None and length is not None:
         limit = 'LIMIT {offset},{length}'.format(offset=offset, length=length)
-    else:
-        limit = ''
+
     connection = db()
     cursor = connection.cursor()
     cursor.execute('SELECT t1.id as product_id, t2.record_id, t1.name as description, t2.datetime, t2.latitude, t2.longitude, t2.elevation from products t1 INNER JOIN locations t2 ON t1.id = t2.product_id {limit}'.format(limit=limit))
