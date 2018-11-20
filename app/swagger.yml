@@ -1,0 +1,160 @@
+swagger: "2.0"
+info:
+  description: This is an API to add, update, or delete the records and the values within the records to track the location of a product (its Longitude, Latitude, Elevation) at a specific Date/time
+  version: "1.0.0"
+  title: Locations API
+consumes:
+  - application/json
+produces:
+  - application/json
+
+basePath: /api
+
+# Paths supported by the server application
+paths:
+  /locations:
+    get:
+      operationId: locations.get_all
+      tags:
+        - Locations
+      summary: Read the entire list of locations
+      description: Read the list of locations
+      parameters:
+        - name: length
+          in: query
+          type: integer
+          description: Number of locations to get from locations
+          required: false
+        - name: offset
+          in: query
+          type: integer
+          description: Offset from beginning of list where to start gathering locations
+          required: false
+      responses:
+        200:
+          description: Successfully read locations list operation
+          schema:
+            type: array
+            items:
+              properties:
+                product_id:
+                  type: integer
+                record_id:
+                  type: integer
+                description:
+                  type: string
+                datetime:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                elevation:
+                  type: number
+
+    post:
+      operationId: locations.create
+      tags:
+        - Locations
+      summary: Create a location and add it to the locations list
+      description: Create a new location in the locations list
+      parameters:
+        - name: location
+          in: body
+          description: Location to create
+          required: True
+          schema:
+            type: object
+            properties:
+              product_id:
+                type: integer
+                description: Product id of location to create
+              latitude:
+                type: number
+                description: Latitude of location to create
+              longitude:
+                type: number
+                description: Longitude of location to create
+              elevation:
+                type: number
+                description: Elevation of location to create
+      responses:
+        201:
+          description: Successfully created location in list
+
+  /locations/{record_id}:
+    get:
+      operationId: locations.read_one
+      tags:
+        - Locations
+      summary: Read one location from the locations list
+      description: Read one location from the locations list
+      parameters:
+        - name: record_id
+          in: path
+          description: Record id of the location to get from the list
+          type: integer
+          required: True
+      responses:
+        200:
+          description: Successfully read location from locations list operation
+          schema:
+            properties:
+              record_id:
+                type: integer
+              product_id:
+                type: integer
+              description:
+                type: string
+              datetime:
+                type: string
+              latitude:
+                type: number
+              longitude:
+                type: number
+              elevation:
+                type: number  
+
+    put:
+      operationId: locations.update
+      tags:
+        - Locations
+      summary: Update a location in the locations list
+      description: Update a location in the locations list
+      parameters:
+        - name: record_id
+          in: path
+          description: Record id of the location to update in the list
+          type: integer
+          required: True
+        - name: location
+          in: body
+          schema:
+            type: object
+            properties:
+              product_id:
+                type: integer
+              latitude:
+                type: number
+              longitude:
+                type: number
+              elevation:
+                type: number  
+      responses:
+        200:
+          description: Successfully updated location in locations list
+
+    delete:
+      operationId: locations.delete
+      tags:
+        - Locations
+      summary: Delete a location from the locations list
+      description: Delete a location
+      parameters:
+        - name: record_id
+          in: path
+          type: integer
+          required: True
+      responses:
+        200:
+          description: Successfully deleted a location from locations list
