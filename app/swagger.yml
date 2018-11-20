@@ -20,15 +20,15 @@ paths:
       summary: Read the entire list of locations
       description: Read the list of locations
       parameters:
-        - name: length
+        - name: limit
           in: query
           type: integer
           description: Number of locations to get from locations
           required: false
-        - name: offset
+        - name: page
           in: query
           type: integer
-          description: Offset from beginning of list where to start gathering locations
+          description: Page number from locations
           required: false
       responses:
         200:
