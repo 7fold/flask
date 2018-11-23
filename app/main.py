@@ -1,9 +1,9 @@
-import connexion
-# from flask import Flask
+import config
 
-app = connexion.FlaskApp(__name__, specification_dir="./")
-app.add_api('swagger.yml')
+connex_app = config.connex_app
+
+connex_app.add_api("swagger.yml")
+
 
 if __name__ == "__main__":
-    # Only for debugging while developing
-    app.run(host='0.0.0.0', debug=True, port=80)
+    connex_app.run(host='0.0.0.0', debug=True, port=80)

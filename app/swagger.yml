@@ -20,15 +20,15 @@ paths:
       summary: Read the entire list of locations
       description: Read the list of locations
       parameters:
-        - name: limit
+        - name: per_page
           in: query
           type: integer
-          description: Number of locations to get from locations
+          description: Number of locations to get from list
           required: false
         - name: page
           in: query
           type: integer
-          description: Page number from locations
+          description: Page number from locations list
           required: false
       responses:
         200:
@@ -81,6 +81,7 @@ paths:
       responses:
         201:
           description: Successfully created location in list
+
 
   /locations/{record_id}:
     get:

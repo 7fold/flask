@@ -1,182 +1,129 @@
-import mysql.connector as mysql
-from typing import List, Dict
-from flask import abort, request
+from flask import jsonify, request
+from config import db
+from sqlalchemy import exc
+from models import (Locations, LocationsSchema,
+                    Products, DataSchema)
+from datetime import datetime
+import pytz
 
 
-def db(sql, commit):
-    config = {
-        'user': 'root',
-        'password': 'SomeStrongPassword123!',
-        'host': 'mysql',
-        'port': '3306',
-        'database': 'texada'
-    }
-    connection = mysql.connect(**config)
-    cursor = connection.cursor()
-    try:
-        cursor.execute(sql)
-        if commit is True:
-            return connection.commit()
-        else:
-            return cursor.fetchall()
-    except Exception:
-        pass
-    finally:
-        cursor.close()
-        connection.close()
+def get_all():
+    pagination = db.session.query(
+        Products.description,
+        Locations.record_id,
+        Locations.product_id,
+        Locations.datetime,
+        Locations.longitude,
+        Locations.latitude,
+        Locations.elevation
+        ).join(
+            Locations,
+            Products._id ==
+            Locations.product_id
+            ).order_by(
+                Locations.record_id
+                ).paginate()
+    sch = DataSchema(many=True)
+    data = sch.dump(pagination.items).data
+
+    return data
 
 
-def num(s):
-    try:
-        return int(s)
-    except ValueError:
-        return float(s)
-
-
-def get_all() -> List[Dict]:
-    limit = request.args.get('limit')
-    page = request.args.get('page')
-
-    if limit is not None and page is not None:
-        offset = (num(page) - 1) * num(limit)
-        sql = 'SELECT \
-        t1.id as product_id, t2.record_id, \
-        t1.name as description, t2.datetime, \
-        t2.latitude, t2.longitude, t2.elevation \
-        FROM products t1 INNER JOIN locations t2 \
-        ON t1.id = t2.product_id \
-        LIMIT {limit} OFFSET {offset}'.format(offset=offset, limit=limit)
+def read_one(record_id):
+    loc = db.session.query(Products.description,
+                           Locations.record_id,
+                           Locations.product_id,
+                           Locations.datetime,
+                           Locations.longitude,
+                           Locations.latitude,
+                           Locations.elevation).join(Locations,
+                                                     Products._id ==
+                                                     Locations.product_id
+                                                     ).filter(
+                                                         Locations.record_id ==
+                                                         record_id
+                                                         ).one_or_none()
+    if loc is not None:
+        sch = DataSchema()
+        data = sch.dump(loc).data
+        return data
     else:
-        sql = 'SELECT \
-        t1.id as product_id, t2.record_id, \
-        t1.name as description, t2.datetime, \
-        t2.latitude, t2.longitude, t2.elevation \
-        FROM products t1 INNER JOIN locations t2 \
-        ON t1.id = t2.product_id'
-
-    data = db(sql, False)
-    RESULT = [
-        {
-            'product_id': product_id,
-            'record_id': record_id,
-            'description': description,
-            'datetime': datetime,
-            'latitude': latitude,
-            'longitude': longitude,
-            'elevation': elevation
-        }
-        for (product_id, record_id,
-             description, datetime,
-             latitude, longitude,
-             elevation) in data]
-
-    return RESULT
-
-
-def read_one(record_id) -> List[Dict]:
-
-    sql = 'SELECT \
-    t2.record_id, t1.id as product_id, \
-    t1.name as description, t2.datetime, \
-    t2.latitude, t2.longitude, t2.elevation \
-    FROM products t1 INNER JOIN locations t2 \
-    ON t1.id = t2.product_id \
-    WHERE record_id =\'{record_id}\''.format(record_id=record_id)
-    data = db(sql, False)
-    RESULT = [
-        {
-            'record_id': record_id,
-            'product_id': product_id,
-            'description': description,
-            'datetime': datetime,
-            'latitude': latitude,
-            'longitude': longitude,
-            'elevation': elevation
-        }
-        for (record_id, product_id,
-             description, datetime,
-             latitude, longitude,
-             elevation) in data]
-
-    if len(RESULT) != 0:
-        location = RESULT
-
-    else:
-        abort(
-            404, "Location record with id: {record_id} \
-            not found".format(record_id=record_id)
-        )
-
-    return location
+        return jsonify({
+            "detail": "record_id '{record_id}' not found".format(
+                record_id=record_id
+                ),
+            "status": 404,
+            "title": "Not found",
+            "type": "about:blank"
+        }), 404
 
 
 def create(location):
+    schema = LocationsSchema(many=False)
+    new_location = schema.load(location, session=db.session).data
 
-    product_id = location.get("product_id", None)
-    latitude = location.get("latitude", None)
-    longitude = location.get("longitude", None)
-    elevation = location.get("elevation", None)
-
-    if (product_id is not None and latitude is not None
-            and longitude is not None and elevation is not None):
-        sql = "INSERT INTO locations \
-        (product_id, latitude, longitude, elevation) VALUES \
-        ({product_id}, {lat}, {lng}, {el})".format(product_id=product_id,
-                                                   lat=latitude, lng=longitude,
-                                                   el=elevation)
-        return db(sql, True), 201
-
-    else:
-        abort(
-            400,
-            "An error occurred.",
-        )
+    try:
+        db.session.add(new_location)
+        db.session.commit()
+        return jsonify({}), 201, {
+            'Location': '{baseurl}/{id}'.format(baseurl=str(request.base_url),
+                                                id=new_location.record_id)
+        }
+    except exc.IntegrityError:
+        db.session().rollback()
+        return jsonify({
+            "detail": "product_id '{id}' do not exist".format(
+                id=new_location.product_id
+                ),
+            "status": 400,
+            "title": "Bad Request",
+            "type": "about:blank"
+        }), 400
 
 
 def update(record_id, location):
+    update_location = Locations.query.filter(
+        Locations.record_id == record_id
+    ).one_or_none()
 
-    sql = 'SELECT record_id FROM locations \
-    WHERE record_id = \'{record_id}\''.format(record_id=record_id)
-    data = db(sql, False)
-    RESULT = [{'record_id': record_id} for (record_id) in data]
+    if update_location is not None:
 
-    if len(RESULT) != 0:
-        product_id = location.get("product_id", None)
-        latitude = location.get("latitude", None)
-        longitude = location.get("longitude", None)
-        elevation = location.get("elevation", None)
-        if (product_id is not None and latitude is not None
-                and longitude is not None and elevation is not None):
-            query = 'UPDATE locations \
-            SET product_id = \'{product_id}\', latitude = \'{latitude}\', \
-            longitude = \'{longitude}\', elevation = \'{elevation}\' \
-            WHERE record_id = \'{record_id}\'\
-            '.format(product_id=product_id, latitude=latitude,
-                     longitude=longitude, elevation=elevation,
-                     record_id=record_id)
-            return db(query, True), 200
+        dt = datetime.utcnow()
+        dt = dt.astimezone(pytz.timezone("America/Toronto"))
 
+        update_location.product_id = location['product_id']
+        update_location.latitude = location['latitude']
+        update_location.longitude = location['longitude']
+        update_location.elevation = location['elevation']
+        update_location.datetime = dt
+
+        db.session.commit()
+        return jsonify({}), 200
     else:
-        abort(
-            404, "Location with id: {record_id} \
-            not found".format(record_id=record_id)
-        )
+        return jsonify({
+            "detail": "record_id '{record_id}' not found".format(
+                record_id=record_id
+                ),
+            "status": 404,
+            "title": "Not found",
+            "type": "about:blank"
+        }), 404
 
 
 def delete(record_id):
+    location = Locations.query.filter(Locations.record_id ==
+                                      record_id).one_or_none()
 
-    sql = 'SELECT record_id FROM locations WHERE \
-    record_id = \'{record_id}\''.format(record_id=record_id)
-    data = db(sql, False)
-    RESULT = [{'record_id': record_id} for (record_id) in data]
-
-    if len(RESULT) != 0:
-        query = 'DELETE FROM locations \
-        WHERE record_id = \'{record_id}\''.format(record_id=record_id)
-        return db(query, True), 200
-
+    if location is not None:
+        db.session.delete(location)
+        db.session.commit()
+        return jsonify({}), 200
     else:
-        abort(
-            404, "Location with id: {record_id} \
-            not found".format(record_id=record_id)
-        )
+        return jsonify({
+            "detail": "record_id '{record_id}' not found".format(
+                record_id=record_id
+                ),
+            "status": 404,
+            "title": "Not found",
+            "type": "about:blank"
+        }), 404

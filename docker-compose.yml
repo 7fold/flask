@@ -1,27 +1,31 @@
 version: '2'
 services:
 
-    flask:
-      restart: always
-      build:
-          context: ./docker/flask/
-      volumes:
-        - ./app:/app
-      ports:
-        - "4430:80"
-      links:
-        - mysql
-      environment:
-        - 'RUN=python main.py'
-      command: python main.py
-      # Infinite loop, to keep it alive, for debugging
-      # command: bash -c "while true; do echo 'sleeping...' && sleep 10; done"
-    
-    mysql:
-      restart: always
-      image: mysql:5.7
-      environment:
-        # - TZ=America/Toronto
-        - MYSQL_ROOT_PASSWORD=SomeStrongPassword123!
-      volumes:
-        - ./db:/docker-entrypoint-initdb.d/:ro
+  flask:
+    restart: always
+    build:
+        context: ./docker/
+    volumes:
+      - ./app:/app
+    ports:
+      - "4430:80"
+    links:
+      - mysql
+    environment:
+      - 'RUN=python main.py'
+    command: python main.py
+    # Infinite loop, to keep it alive, for debugging
+    # command: bash -c "while true; do echo 'sleeping...' && sleep 10; done"
+  
+  mysql:
+    restart: always
+    image: mariadb:latest
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/:ro
+    environment:
+      TZ: "America/Toronto"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+      MYSQL_ROOT_PASSWORD: "SomeStrongPassword123!"
+      MYSQL_USER: 'texada'
+      MYSQL_PASSWORD: 'texada'
+      MYSQL_DATABASE: 'texada'
