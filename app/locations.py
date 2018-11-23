@@ -30,19 +30,23 @@ def get_all():
 
 
 def read_one(record_id):
-    loc = db.session.query(Products.description,
-                           Locations.record_id,
-                           Locations.product_id,
-                           Locations.datetime,
-                           Locations.longitude,
-                           Locations.latitude,
-                           Locations.elevation).join(Locations,
-                                                     Products._id ==
-                                                     Locations.product_id
-                                                     ).filter(
-                                                         Locations.record_id ==
-                                                         record_id
-                                                         ).one_or_none()
+    loc = db.session.query(
+        Products.description,
+        Locations.record_id,
+        Locations.product_id,
+        Locations.datetime,
+        Locations.longitude,
+        Locations.latitude,
+        Locations.elevation
+        ).join(
+            Locations,
+            Products._id ==
+            Locations.product_id
+            ).filter(
+                Locations.record_id ==
+                record_id
+                ).one_or_none()
+
     if loc is not None:
         sch = DataSchema()
         data = sch.dump(loc).data
@@ -111,8 +115,10 @@ def update(record_id, location):
 
 
 def delete(record_id):
-    location = Locations.query.filter(Locations.record_id ==
-                                      record_id).one_or_none()
+    location = Locations.query.filter(
+        Locations.record_id ==
+        record_id
+        ).one_or_none()
 
     if location is not None:
         db.session.delete(location)

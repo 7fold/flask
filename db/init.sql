@@ -1,4 +1,6 @@
 SET time_zone = "America/Toronto";
+	
+SET GLOBAL wait_timeout = 10;
 
 use texada;
 

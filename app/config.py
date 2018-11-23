@@ -20,6 +20,7 @@ db_url = 'mysql+pymysql://texada:texada@mysql/texada?charset=utf8'
 app.config["SQLALCHEMY_ECHO"] = True
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_POOL_RECYCLE"] = 7200
 
 # Create the SqlAlchemy db instance
 db = SQLAlchemy(app)
